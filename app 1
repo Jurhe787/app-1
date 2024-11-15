@@ -1,0 +1,72 @@
+# app.py
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+# Título de la Aplicación
+st.title("📊 Análisis Predictivo de Recursos Humanos para Fastenal")
+
+# Subir Archivo Excel
+st.header("Subir Datos de Empleados")
+uploaded_file = st.file_uploader("Sube tu archivo Excel con los datos de empleados", type=["xlsx"])
+
+if uploaded_file:
+    # Leer el archivo subido
+    data = pd.read_excel(uploaded_file)
+    st.success("Datos cargados exitosamente")
+    st.write("Vista previa de los datos:")
+    st.dataframe(data.head())
+
+    # Cálculo del Modelo de Rotación
+    st.subheader("📈 Modelo de Análisis de Rotación")
+    data['Riesgo de Rotación'] = data.apply(
+        lambda row: 1 if row['Satisfacción (%)'] < 65 or row['Horas Extra (mensual)'] > 9 or row['Reconocimientos (anual)'] <= 1 else 0,
+        axis=1
+    )
+
+    # Cálculo del Modelo de Compromiso
+    st.subheader("📊 Modelo de Predicción de Compromiso")
+    data['Nivel de Compromiso'] = data.apply(
+        lambda row: (row['Encuesta Clima (1-5)'] + (0.5 if row['Participación en Actividades'] == 1 else 0) + 
+                     (0.3 * row['Capacitaciones Completadas'])) / 2,
+        axis=1
+    )
+
+    # Cálculo del Modelo de Desempeño
+    st.subheader("🚀 Modelo de Predicción de Desempeño")
+    data['Predicción de Desempeño'] = data.apply(
+        lambda row: (row['Desempeño (1-5)'] + (0.2 * row['Capacitaciones Completadas']) + 
+                     (0.1 * row['Reconocimientos (anual)'])) / 2,
+        axis=1
+    )
+
+    # Mostrar Resultados
+    st.write("Resultados del Análisis Predictivo:")
+    st.dataframe(data[['ID Empleado', 'Nombre', 'Riesgo de Rotación', 'Nivel de Compromiso', 'Predicción de Desempeño']])
+
+    # Visualización de Gráficos
+    st.subheader("📊 Visualización de Resultados")
+    st.write("Distribución de Riesgo de Rotación:")
+    fig_rotacion = px.histogram(data, x="Riesgo de Rotación", title="Distribución de Riesgo de Rotación", labels={"x": "Riesgo de Rotación"})
+    st.plotly_chart(fig_rotacion)
+
+    st.write("Nivel de Compromiso Promedio por Departamento (Simulado):")
+    if 'Departamento' in data.columns:
+        fig_compromiso = px.bar(data, x='Departamento', y='Nivel de Compromiso', title="Nivel de Compromiso por Departamento", labels={"x": "Departamento", "y": "Nivel de Compromiso"})
+        st.plotly_chart(fig_compromiso)
+    else:
+        st.info("Agrega una columna 'Departamento' para mostrar este gráfico.")
+
+    st.write("Predicción de Desempeño Promedio:")
+    fig_desempeno = px.box(data, y="Predicción de Desempeño", title="Distribución de Predicción de Desempeño")
+    st.plotly_chart(fig_desempeno)
+
+    # Exportar Resultados
+    st.subheader("📤 Exportar Resultados")
+    st.download_button(
+        label="Descargar Resultados en Excel",
+        data=data.to_excel(index=False).encode('utf-8'),
+        file_name="resultados_predictivos.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
